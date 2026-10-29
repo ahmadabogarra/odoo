@@ -1,0 +1,51 @@
+FROM python:3.12-slim-bookworm
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    gcc \
+    g++ \
+    make \
+    pkg-config \
+    ca-certificates \
+    postgresql-client \
+    libpq-dev \
+    libldap2-dev \
+    libsasl2-dev \
+    libssl-dev \
+    libffi-dev \
+    libjpeg62-turbo-dev \
+    zlib1g-dev \
+    libxml2-dev \
+    libxslt1-dev \
+    libmagic1 \
+    nodejs \
+    npm \
+    gettext \
+    fontconfig \
+    fonts-dejavu-core \
+    fonts-freefont-ttf \
+    fonts-noto-core \
+    && npm install -g rtlcss \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /opt/odoo
+
+COPY requirements.txt ./requirements.txt
+RUN python -m pip install --upgrade pip setuptools wheel \
+    && python -m pip install -r requirements.txt
+
+COPY . /opt/odoo
+
+RUN useradd --system --create-home --home-dir /var/lib/odoo --user-group odoo \
+    && mkdir -p /var/lib/odoo \
+    && chown -R odoo:odoo /opt/odoo /var/lib/odoo
+
+USER odoo
+
+EXPOSE 8069
+
+CMD ["sh", "-c", "exec ./odoo-bin --http-interface=0.0.0.0 --http-port=${PORT:-8069} --proxy-mode --data-dir=/var/lib/odoo --db_host=\"${PGHOST}\" --db_port=\"${PGPORT:-5432}\" --db_user=\"${PGUSER}\" --db_password=\"${PGPASSWORD}\" --admin-passwd=\"${ODOO_MASTER_PASSWORD}\""]
