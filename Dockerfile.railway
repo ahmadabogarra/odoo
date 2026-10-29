@@ -4,6 +4,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1
 
+# Railway startup creates and uses a dedicated PostgreSQL role for Odoo.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     gcc \
