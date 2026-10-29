@@ -23,9 +23,9 @@ class Base(models.AbstractModel):
         if self._name in TECHNICAL_WRITE_MODELS or self._name.startswith("bus."):
             return
         params = self.env["ir.config_parameter"].sudo()
-        status = params.get_param("chargex.subscription.status", "active")
+        status = params.get_str("chargex.subscription.status", "active")
         if status in READ_ONLY_STATUSES:
-            message = params.get_param(
+            message = params.get_str(
                 "chargex.subscription.message",
                 _("The subscription is suspended. This database is currently read-only."),
             )
