@@ -32,20 +32,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && npm install -g rtlcss \
     && rm -rf /var/lib/apt/lists/*
 
+RUN useradd --system --create-home --home-dir /var/lib/odoo --user-group odoo \
+    && mkdir -p /var/lib/odoo \
+    && chown -R odoo:odoo /var/lib/odoo
+
 WORKDIR /opt/odoo
 
 COPY requirements.txt ./requirements.txt
 RUN python -m pip install --upgrade pip setuptools wheel \
     && python -m pip install -r requirements.txt
 
-COPY . /opt/odoo
-
-RUN useradd --system --create-home --home-dir /var/lib/odoo --user-group odoo \
-    && mkdir -p /var/lib/odoo \
-    && chown -R odoo:odoo /opt/odoo /var/lib/odoo
+COPY --chown=odoo:odoo . /opt/odoo
 
 USER odoo
 
 EXPOSE 8069
 
-CMD ["sh", "-c", "exec ./odoo-bin --http-interface=0.0.0.0 --http-port=${PORT:-8069} --proxy-mode --data-dir=/var/lib/odoo --db_host=\"${PGHOST}\" --db_port=\"${PGPORT:-5432}\" --db_user=\"${PGUSER}\" --db_password=\"${PGPASSWORD}\" --admin-passwd=\"${ODOO_MASTER_PASSWORD}\""]
+CMD ["sh", "-c", "exec ./odoo-bin --http-interface=0.0.0.0 --http-port=${PORT:-8069} --proxy-mode --data-dir=/var/lib/odoo --db_host=\"${PGHOST}\" --db_port=\"${PGPORT:-5432}\" --db_user=\"${PGUSER}\" --db_password=\"${PGPASSWORD}\""]
