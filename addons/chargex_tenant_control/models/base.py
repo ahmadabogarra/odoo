@@ -43,12 +43,3 @@ class Base(models.AbstractModel):
     def unlink(self):
         self._chargex_check_subscription_write()
         return super().unlink()
-
-    @api.model
-    def search_fetch(self, domain, field_names, offset=0, limit=None, order=None):
-        records = super().search_fetch(domain, field_names, offset, limit, order)
-        if self._name == "ir.module.module" and "to_buy" in self._fields:
-            records = records.filtered(lambda rec: not rec.to_buy)
-        elif self._name == "payment.provider" and "module_to_buy" in self._fields:
-            records = records.filtered(lambda rec: not rec.module_to_buy)
-        return records
