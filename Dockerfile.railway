@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     make \
     pkg-config \
     ca-certificates \
+    git \
     postgresql-client \
     libpq-dev \
     libldap2-dev \
@@ -45,6 +46,19 @@ RUN python -m pip install --upgrade pip setuptools wheel \
     && python -m pip install -r requirements.txt
 
 COPY --chown=odoo:odoo . /opt/odoo
+
+# OCA account_usability 20.0, pinned for reproducible production builds.
+# Upstream: https://github.com/OCA/account-financial-tools/tree/20.0/account_usability
+ARG OCA_ACCOUNT_FINANCIAL_TOOLS_COMMIT=fca00f802a8802560a04e0941d779236a01f5e0c
+RUN git init /tmp/oca-account-financial-tools \
+    && cd /tmp/oca-account-financial-tools \
+    && git remote add origin https://github.com/OCA/account-financial-tools.git \
+    && git fetch --depth 1 origin ${OCA_ACCOUNT_FINANCIAL_TOOLS_COMMIT} \
+    && git checkout FETCH_HEAD -- account_usability \
+    && cp -a account_usability /opt/odoo/addons/account_usability \
+    && chown -R odoo:odoo /opt/odoo/addons/account_usability \
+    && rm -rf /tmp/oca-account-financial-tools
+
 RUN chmod +x /opt/odoo/railway-entrypoint.sh
 
 EXPOSE 8069
