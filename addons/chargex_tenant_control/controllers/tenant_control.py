@@ -11,7 +11,7 @@ class ChargeXTenantControl(Controller):
     def status(self):
         params = request.env["ir.config_parameter"].sudo()
         return {
-            key: params.get_param(PARAM_PREFIX + key, "")
+            key: params.get_str(PARAM_PREFIX + key, "")
             for key in (
                 "status",
                 "stage",
