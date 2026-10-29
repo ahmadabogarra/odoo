@@ -29,6 +29,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fonts-dejavu-core \
     fonts-freefont-ttf \
     fonts-noto-core \
+    gosu \
     && npm install -g rtlcss \
     && rm -rf /var/lib/apt/lists/*
 
@@ -43,9 +44,8 @@ RUN python -m pip install --upgrade pip setuptools wheel \
     && python -m pip install -r requirements.txt
 
 COPY --chown=odoo:odoo . /opt/odoo
-
-USER odoo
+RUN chmod +x /opt/odoo/railway-entrypoint.sh
 
 EXPOSE 8069
 
-CMD ["sh", "-c", "exec ./odoo-bin --http-interface=0.0.0.0 --http-port=${PORT:-8069} --proxy-mode --data-dir=/var/lib/odoo --db_host=\"${PGHOST}\" --db_port=\"${PGPORT:-5432}\" --db_user=\"${PGUSER}\" --db_password=\"${PGPASSWORD}\""]
+CMD ["/opt/odoo/railway-entrypoint.sh"]
