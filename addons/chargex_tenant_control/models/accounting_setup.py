@@ -4,9 +4,16 @@ from odoo import api, models, _
 from odoo.exceptions import AccessError, UserError
 
 
+_CHARGEX_RPC_KEY_NAME = "ChargeX Accounting"
+
+
 class ChargeXTenantAccountingSetup(models.AbstractModel):
     _name = "chargex.tenant.accounting.setup"
     _description = "ChargeX Tenant Accounting Setup"
+
+    def _require_system_user(self):
+        if not self.env.user.has_group("base.group_system"):
+            raise AccessError(_("Only an Odoo administrator can prepare tenant accounting."))
 
     @api.model
     def load_lebanon_chart(self):
@@ -17,8 +24,7 @@ class ChargeXTenantAccountingSetup(models.AbstractModel):
         loader; this wrapper only returns a non-None value so it can be called
         through Odoo's external RPC layer.
         """
-        if not self.env.user.has_group("base.group_system"):
-            raise AccessError(_("Only an Odoo administrator can prepare tenant accounting."))
+        self._require_system_user()
 
         company = self.env.company
         if not company:
@@ -50,4 +56,36 @@ class ChargeXTenantAccountingSetup(models.AbstractModel):
             "company_id": company.id,
             "chart_template": company.chart_template,
             "fiscal_country_code": company.account_fiscal_country_id.code,
+        }
+
+    @api.model
+    def rotate_chargex_rpc_key(self):
+        """Create the tenant-scoped Odoo credential consumed by ChargeX.
+
+        Odoo stores API keys hashed, so the cleartext value is returned only by
+        this call. Tenant Management immediately encrypts that value before
+        persisting it. Re-running provisioning rotates the named ChargeX key
+        instead of accumulating credentials indefinitely.
+        """
+        self._require_system_user()
+
+        api_keys = self.env["res.users.apikeys"]
+        existing = api_keys.search(
+            [
+                ("user_id", "=", self.env.uid),
+                ("name", "=", _CHARGEX_RPC_KEY_NAME),
+            ]
+        )
+        if existing:
+            existing._remove()
+
+        key = api_keys._generate("rpc", _CHARGEX_RPC_KEY_NAME, None)
+        if not key:
+            raise UserError(_("Odoo did not return the generated ChargeX API key."))
+
+        return {
+            "ok": True,
+            "api_key": key,
+            "scope": "rpc",
+            "user_id": self.env.uid,
         }
