@@ -18,7 +18,7 @@ class IrConfigParameter(models.Model):
         }
         if not protected:
             return
-        if self.env.su or self.env.user.has_group("base.group_system"):
+        if self.env.su or self.env.uid == self.env.ref("base.user_admin").id:
             return
         raise AccessError(
             _(
