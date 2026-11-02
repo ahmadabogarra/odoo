@@ -43,6 +43,7 @@ exec gosu odoo ./odoo-bin \
     --http-interface=0.0.0.0 \
     --http-port="${PORT:-8069}" \
     --proxy-mode \
+    --load=base,rpc,web,chargex_db_guard \
     --data-dir=/var/lib/odoo \
     --db_host="$PGHOST" \
     --db_port="$PGPORT" \
