@@ -18,10 +18,16 @@ class Base(models.AbstractModel):
     _inherit = "base"
 
     def _chargex_check_subscription_write(self):
-        if self.env.su or self.env.context.get("chargex_tenant_control_bypass"):
+        # Never trust a caller-supplied RPC context flag as an authorization
+        # boundary. Only Odoo's real superuser or Settings administrators are
+        # allowed to act as the ChargeX control plane while a tenant is locked.
+        if self.env.su:
             return
         if self._name in TECHNICAL_WRITE_MODELS or self._name.startswith("bus."):
             return
+        if self.env.user.has_group("base.group_system"):
+            return
+
         params = self.env["ir.config_parameter"].sudo()
         status = params.get_str("chargex.subscription.status", "active")
         if status in READ_ONLY_STATUSES:
