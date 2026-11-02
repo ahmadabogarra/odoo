@@ -13,11 +13,12 @@ _PRIVATE_DOMAIN_ENV = "RAILWAY_PRIVATE_DOMAIN"
 
 
 def _is_private_railway_request() -> bool:
-    """Allow database-management routes only over Railway private DNS.
+    """Allow privileged database mutation routes only over Railway private DNS.
 
     Tenant Management talks to Odoo through ``odoo.railway.internal``. Public
-    browser traffic arrives on the Railway public domain and must never expose
-    database enumeration or database-management operations.
+    browser traffic arrives on the Railway public domain and must never reach
+    database-management mutation routes. Database enumeration/UI routes are
+    disabled entirely below, including on the private network.
     """
     expected = str(os.getenv(_PRIVATE_DOMAIN_ENV, "") or "").strip().lower().rstrip(".")
     if not expected:
@@ -40,16 +41,24 @@ def _require_private_railway_request() -> None:
 
 
 class ChargeXDatabaseGuard(Database):
+    # Database enumeration and the database-management UI are never needed by
+    # ChargeX Accounting. Keep them dark even to other services on the private
+    # Railway network.
     @route()
     def selector(self, **kw):
-        _require_private_railway_request()
-        return super().selector(**kw)
+        raise NotFound()
 
     @route()
     def manager(self, **kw):
-        _require_private_railway_request()
-        return super().manager(**kw)
+        raise NotFound()
 
+    @route()
+    def list(self):
+        raise NotFound()
+
+    # Tenant Management still needs database creation. Mutation routes are
+    # restricted to Railway private DNS and retain Odoo's built-in master-
+    # password verification in the superclass methods.
     @route()
     def create(self, master_pwd, name, lang, password, **post):
         _require_private_railway_request()
@@ -84,8 +93,3 @@ class ChargeXDatabaseGuard(Database):
     def change_password(self, master_pwd, master_pwd_new):
         _require_private_railway_request()
         return super().change_password(master_pwd, master_pwd_new)
-
-    @route()
-    def list(self):
-        _require_private_railway_request()
-        return super().list()
