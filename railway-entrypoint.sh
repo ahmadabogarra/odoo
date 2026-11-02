@@ -4,12 +4,17 @@ set -eu
 : "${PGHOST:?PGHOST is required}"
 : "${PGPASSWORD:?PGPASSWORD is required}"
 : "${ODOO_DB_PASSWORD:?ODOO_DB_PASSWORD is required}"
+: "${ODOO_MASTER_PASSWORD:?ODOO_MASTER_PASSWORD is required}"
 
 PGPORT="${PGPORT:-5432}"
 PGUSER="${PGUSER:-postgres}"
 PGDATABASE="${PGDATABASE:-railway}"
 ODOO_DB_USER="${ODOO_DB_USER:-odoo}"
 
+# Odoo reads the database-manager master credential as admin_passwd. Keep one
+# production source of truth so Tenant Management and Odoo cannot drift onto
+# different master passwords. Any legacy ODOO_ADMIN_PASSWD value is ignored.
+export ODOO_ADMIN_PASSWD="$ODOO_MASTER_PASSWORD"
 export PGPASSWORD
 
 ROLE_EXISTS="$(psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$PGDATABASE" -tAc "SELECT 1 FROM pg_roles WHERE rolname = 'odoo';" | tr -d '[:space:]')"
