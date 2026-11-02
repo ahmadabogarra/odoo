@@ -27,6 +27,17 @@ class TestTenantControlSecurity(TransactionCase):
                 ],
             }
         )
+        # Models the legacy provisioning bug where customer admins inherited
+        # the service user's Settings group. This user must still not become a
+        # ChargeX control-plane identity.
+        cls.legacy_settings_user = cls.env["res.users"].create(
+            {
+                "name": "Legacy ChargeX Settings User",
+                "login": "chargex-legacy-settings-test@example.invalid",
+                "email": "chargex-legacy-settings-test@example.invalid",
+                "group_ids": [Command.set([cls.env.ref("base.group_system").id])],
+            }
+        )
 
     def setUp(self):
         super().setUp()
@@ -40,7 +51,15 @@ class TestTenantControlSecurity(TransactionCase):
                 chargex_tenant_control_bypass=True
             ).create({"name": "Blocked tenant write"})
 
-    def test_settings_admin_can_manage_suspended_database(self):
+    def test_legacy_settings_user_cannot_bypass_suspension(self):
+        self.params.set_str("chargex.subscription.status", "suspended")
+
+        with self.assertRaises(UserError):
+            self.env["res.partner"].with_user(self.legacy_settings_user).with_context(
+                chargex_tenant_control_bypass=True
+            ).create({"name": "Blocked legacy settings write"})
+
+    def test_service_admin_can_manage_suspended_database(self):
         self.params.set_str("chargex.subscription.status", "suspended")
 
         partner = self.env["res.partner"].with_user(
@@ -60,6 +79,19 @@ class TestTenantControlSecurity(TransactionCase):
             record.with_user(self.tenant_user).with_context(
                 chargex_tenant_control_bypass=True
             ).write({"value": "active"})
+
+        self.assertEqual(
+            self.params.get_str("chargex.subscription.status"), "suspended"
+        )
+
+    def test_legacy_settings_user_cannot_modify_subscription_parameter(self):
+        self.params.set_str("chargex.subscription.status", "suspended")
+        record = self.params.search(
+            [("key", "=", "chargex.subscription.status")], limit=1
+        )
+
+        with self.assertRaises(AccessError):
+            record.with_user(self.legacy_settings_user).write({"value": "active"})
 
         self.assertEqual(
             self.params.get_str("chargex.subscription.status"), "suspended"
