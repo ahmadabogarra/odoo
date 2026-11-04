@@ -1,5 +1,6 @@
 """Constrained ChargeX product operations exposed through Odoo's official MCP."""
 
+import hashlib
 import math
 
 from odoo import api, models
@@ -21,8 +22,17 @@ class ProductTemplate(models.Model):
 
     @api.model
     def _cx_mcp_revision(self, template):
-        value = template.write_date
-        return value.isoformat(timespec="microseconds") + "Z" if value else None
+        variants = template.with_context(active_test=False).product_variant_ids
+        # Odoo's write_date can repeat within one database transaction.
+        # Include actual business state so same-transaction changes invalidate
+        # the old revision as well.
+        stamp = template.write_date.isoformat(timespec="microseconds") if template.write_date else None
+        state = (
+            template.id, stamp, template.name, template.list_price,
+            template.active, template.categ_id.id, template.company_id.id,
+            variants.default_code if len(variants) == 1 else None,
+        )
+        return hashlib.sha256(repr(state).encode("utf-8")).hexdigest()
 
     @api.model
     def _cx_mcp_product(self, template_id, write=False):
@@ -52,7 +62,8 @@ class ProductTemplate(models.Model):
             "list_price": product.list_price,
             "active": product.active,
             "variant_count": len(variants),
-            "write_date": self._cx_mcp_revision(product),
+            "revision": self._cx_mcp_revision(product),
+            "write_date": product.write_date.isoformat(timespec="microseconds") + "Z" if product.write_date else None,
         }
 
     @api.model
@@ -111,16 +122,17 @@ class ProductTemplate(models.Model):
                 raise ValidationError("SKU already belongs to another product.")
 
     @api.model
-    def _cx_mcp_lock_and_check(self, product, expected_write_date):
-        if not isinstance(expected_write_date, str) or not expected_write_date:
-            raise ValidationError("Expected write_date is required.")
+    def _cx_mcp_lock_and_check(self, product, expected_revision):
+        if not isinstance(expected_revision, str) or not expected_revision:
+            raise ValidationError("Expected revision is required.")
         # Acquire database row lock before revision checking. No data is returned.
         self.env.cr.execute(
             "SELECT id FROM product_template WHERE id = %s FOR UPDATE",
             [product.id],
         )
-        product.invalidate_recordset(["write_date"])
-        if self._cx_mcp_revision(product) != expected_write_date:
+        product.invalidate_recordset()
+        product.with_context(active_test=False).product_variant_ids.invalidate_recordset()
+        if self._cx_mcp_revision(product) != expected_revision:
             raise ValidationError("Product has changed. Read it again first.")
 
     @api.model
@@ -164,7 +176,7 @@ class ProductTemplate(models.Model):
         return self._cx_mcp_snapshot(product)
 
     @api.model
-    def chargex_mcp_update_product(self, template_id, expected_write_date, changes):
+    def chargex_mcp_update_product(self, template_id, expected_revision, changes):
         self._cx_mcp_write_guard()
         product = self._cx_mcp_product(template_id, write=True)
         variants = product.with_context(active_test=False).product_variant_ids
@@ -182,7 +194,7 @@ class ProductTemplate(models.Model):
         if "list_price" in changes:
             updates["list_price"] = self._cx_mcp_validate_price(changes["list_price"])
         code = self._cx_mcp_validate_sku(changes["default_code"]) if "default_code" in changes else None
-        self._cx_mcp_lock_and_check(product, expected_write_date)
+        self._cx_mcp_lock_and_check(product, expected_revision)
         if "name" in updates:
             self._cx_mcp_no_duplicates(
                 name=updates["name"], category_id=product.categ_id.id, exclude=product.id
@@ -197,14 +209,14 @@ class ProductTemplate(models.Model):
         return self._cx_mcp_snapshot(product)
 
     @api.model
-    def chargex_mcp_set_product_active(self, template_id, expected_write_date, active):
+    def chargex_mcp_set_product_active(self, template_id, expected_revision, active):
         self._cx_mcp_write_guard()
         if type(active) is not bool:
             raise ValidationError("Active must be a boolean.")
         product = self._cx_mcp_product(template_id, write=True)
         if len(product.with_context(active_test=False).product_variant_ids) != 1:
             raise UserError("Multi-variant products are not supported.")
-        self._cx_mcp_lock_and_check(product, expected_write_date)
+        self._cx_mcp_lock_and_check(product, expected_revision)
         if product.active != active:
             product.write({"active": active})
         product.invalidate_recordset()
