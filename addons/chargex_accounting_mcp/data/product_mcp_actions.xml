@@ -21,7 +21,7 @@
     <field name="use_in_mcp" eval="True"/>
     <field name="is_readonly" eval="True"/>
     <field name="ai_tool_name">chargex_get_product</field>
-    <field name="ai_tool_description">Read product and write_date for safe updates</field>
+    <field name="ai_tool_description">Read product and revision for safe updates</field>
     <field name="ai_tool_schema">{"type":"object","properties":{"template_id":{"type":"integer","minimum":1}},"required":["template_id"]}</field>
   </record>
   <record id="action_create" model="ir.actions.server">
@@ -41,26 +41,26 @@
     <field name="name">ChargeX: chargex_update_product</field>
     <field name="model_id" ref="product.model_product_template"/>
     <field name="state">code</field>
-    <field name="code">ai['result'] = model.chargex_mcp_update_product(template_id, expected_write_date, changes)</field>
+    <field name="code">ai['result'] = model.chargex_mcp_update_product(template_id, expected_revision, changes)</field>
     <field name="use_in_ai" eval="True"/>
     <field name="use_in_mcp" eval="True"/>
     <field name="is_readonly" eval="False"/>
     <field name="ai_tool_name">chargex_update_product</field>
     <field name="ai_tool_description">Update product name, price or SKU with optimistic concurrency; policy-gated</field>
-    <field name="ai_tool_schema">{"type":"object","properties":{"template_id":{"type":"integer","minimum":1},"expected_write_date":{"type":"string","minLength":1},"changes":{"type":"object","properties":{"name":{"type":"string"},"list_price":{"type":"number","minimum":0},"default_code":{"type":"string"}}}},"required":["template_id","expected_write_date","changes"]}</field>
+    <field name="ai_tool_schema">{"type":"object","properties":{"template_id":{"type":"integer","minimum":1},"expected_revision":{"type":"string","minLength":1},"changes":{"type":"object","properties":{"name":{"type":"string"},"list_price":{"type":"number","minimum":0},"default_code":{"type":"string"}}}},"required":["template_id","expected_revision","changes"]}</field>
     <field name="group_ids" eval="[(4, ref('chargex_accounting_mcp.group_product_mcp_writer'))]"/>
   </record>
   <record id="action_active" model="ir.actions.server">
     <field name="name">ChargeX: chargex_set_product_active</field>
     <field name="model_id" ref="product.model_product_template"/>
     <field name="state">code</field>
-    <field name="code">ai['result'] = model.chargex_mcp_set_product_active(template_id, expected_write_date, active)</field>
+    <field name="code">ai['result'] = model.chargex_mcp_set_product_active(template_id, expected_revision, active)</field>
     <field name="use_in_ai" eval="True"/>
     <field name="use_in_mcp" eval="True"/>
     <field name="is_readonly" eval="False"/>
     <field name="ai_tool_name">chargex_set_product_active</field>
     <field name="ai_tool_description">Archive or restore a single-variant product; policy-gated</field>
-    <field name="ai_tool_schema">{"type":"object","properties":{"template_id":{"type":"integer","minimum":1},"expected_write_date":{"type":"string","minLength":1},"active":{"type":"boolean"}},"required":["template_id","expected_write_date","active"]}</field>
+    <field name="ai_tool_schema">{"type":"object","properties":{"template_id":{"type":"integer","minimum":1},"expected_revision":{"type":"string","minLength":1},"active":{"type":"boolean"}},"required":["template_id","expected_revision","active"]}</field>
     <field name="group_ids" eval="[(4, ref('chargex_accounting_mcp.group_product_mcp_writer'))]"/>
   </record>
 </odoo>
