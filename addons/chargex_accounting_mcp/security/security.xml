@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <record id="group_product_mcp_writer" model="res.groups">
+    <field name="name">ChargeX MCP Product Writer</field>
+    <field name="comment">Allow carefully scoped MCP product writes when server policy enables them.</field>
+  </record>
+</odoo>
