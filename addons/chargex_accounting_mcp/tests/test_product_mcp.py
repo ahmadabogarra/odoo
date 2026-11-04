@@ -84,20 +84,20 @@ class TestChargexProductMcp(TransactionCase):
 
         updated = self._call_tool(self.writer, "chargex_update_product", {
             "template_id": created["template_id"],
-            "expected_write_date": created["write_date"],
+            "expected_revision": created["revision"],
             "changes": {"list_price": 27.00},
         })
         self.assertEqual(updated["list_price"], 27.0)
 
         archived = self._call_tool(self.writer, "chargex_set_product_active", {
             "template_id": updated["template_id"],
-            "expected_write_date": updated["write_date"],
+            "expected_revision": updated["revision"],
             "active": False,
         })
         self.assertFalse(archived["active"])
         restored = self._call_tool(self.writer, "chargex_set_product_active", {
             "template_id": archived["template_id"],
-            "expected_write_date": archived["write_date"],
+            "expected_revision": archived["revision"],
             "active": True,
         })
         self.assertTrue(restored["active"])
@@ -109,7 +109,7 @@ class TestChargexProductMcp(TransactionCase):
         product = self._create()
         self._call_tool(self.writer, "chargex_set_product_active", {
             "template_id": product["template_id"],
-            "expected_write_date": product["write_date"],
+            "expected_revision": product["revision"],
             "active": False,
         })
         with self.assertRaises(ValidationError):
@@ -122,14 +122,14 @@ class TestChargexProductMcp(TransactionCase):
         original = self._create()
         new_version = self._call_tool(self.writer, "chargex_update_product", {
             "template_id": original["template_id"],
-            "expected_write_date": original["write_date"],
+            "expected_revision": original["revision"],
             "changes": {"list_price": 37.00},
         })
         self.assertEqual(new_version["list_price"], 37.0)
         with self.assertRaises(ValidationError):
             self._call_tool(self.writer, "chargex_update_product", {
                 "template_id": original["template_id"],
-                "expected_write_date": original["write_date"],
+                "expected_revision": original["revision"],
                 "changes": {"name": "Stale write"},
             })
 
