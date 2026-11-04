@@ -1,0 +1,50 @@
+name: ChargeX native MCP addon checks
+
+on:
+  push:
+    paths:
+      - 'addons/chargex_accounting_mcp/**'
+      - '.github/workflows/chargex-native-mcp.yml'
+  pull_request:
+    paths:
+      - 'addons/chargex_accounting_mcp/**'
+      - '.github/workflows/chargex-native-mcp.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  addon-static:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+      - name: Validate Python syntax, XML, tool schemas and approval gates
+        run: |
+          python -m compileall -q addons/chargex_accounting_mcp
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+
+          root = Path("addons/chargex_accounting_mcp")
+          manifest = (root / "__manifest__.py").read_text()
+          assert '"ai_mcp"' in manifest, "Expected a dependency on official MCP"
+          assert '"auto_install": False' in manifest
+
+          actions = ET.parse(root / "data/product_mcp_actions.xml").getroot().findall("record")
+          assert len(actions) == 5
+          for action in actions:
+              fields = {field.attrib["name"]: field for field in action.findall("field")}
+              schema = json.loads(fields["ai_tool_schema"].text)
+              assert schema["type"] == "object"
+              assert fields["use_in_mcp"].attrib["eval"] == "True"
+              assert fields["model_id"].attrib["ref"] == "product.model_product_template"
+              if fields["is_readonly"].attrib["eval"] == "False":
+                  assert "group_ids" in fields, "Write tool lacks Odoo group gate"
+          ET.parse(root / "security/security.xml")
+          source = (root / "models/product_template.py").read_text()
+          assert "product_writes_enabled" in source
+          assert "FOR UPDATE" in source
+          assert "with_context(active_test=False)" in source
+          print("ChargeX native MCP static checks: OK")
+          PY
