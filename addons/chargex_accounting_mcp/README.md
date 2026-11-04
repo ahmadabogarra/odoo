@@ -49,7 +49,7 @@ ship these dependencies, so this addon is **not ready to install in production**
   non-empty SKUs across active and archived records.
 - Only single-variant templates are mutable; no arbitrary model or field
   operations are exposed.
-- Updating and archiving require the exact `write_date` returned by
+- Updating and archiving require the exact `revision` returned by
   `chargex_get_product`; a database row lock serializes concurrent writes.
 - The official MCP dispatcher currently supplies `tool_request_confirmed=True`
   when running server actions. **This addon does not implement human approval.**
