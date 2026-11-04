@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <record id="action_categories" model="ir.actions.server">
+    <field name="name">ChargeX: chargex_list_product_categories</field>
+    <field name="model_id" ref="product.model_product_template"/>
+    <field name="state">code</field>
+    <field name="code">ai['result'] = model.chargex_mcp_list_categories()</field>
+    <field name="use_in_ai" eval="True"/>
+    <field name="use_in_mcp" eval="True"/>
+    <field name="is_readonly" eval="True"/>
+    <field name="ai_tool_name">chargex_list_product_categories</field>
+    <field name="ai_tool_description">List categories for current user's company</field>
+    <field name="ai_tool_schema">{"type":"object","properties":{},"required":[]}</field>
+  </record>
+  <record id="action_read" model="ir.actions.server">
+    <field name="name">ChargeX: chargex_get_product</field>
+    <field name="model_id" ref="product.model_product_template"/>
+    <field name="state">code</field>
+    <field name="code">ai['result'] = model.chargex_mcp_get_product(template_id)</field>
+    <field name="use_in_ai" eval="True"/>
+    <field name="use_in_mcp" eval="True"/>
+    <field name="is_readonly" eval="True"/>
+    <field name="ai_tool_name">chargex_get_product</field>
+    <field name="ai_tool_description">Read product and revision for safe updates</field>
+    <field name="ai_tool_schema">{"type":"object","properties":{"template_id":{"type":"integer","minimum":1}},"required":["template_id"]}</field>
+  </record>
+  <record id="action_create" model="ir.actions.server">
+    <field name="name">ChargeX: chargex_create_product</field>
+    <field name="model_id" ref="product.model_product_template"/>
+    <field name="state">code</field>
+    <field name="code">ai['result'] = model.chargex_mcp_create_product(name, category_id, list_price, default_code)</field>
+    <field name="use_in_ai" eval="True"/>
+    <field name="use_in_mcp" eval="True"/>
+    <field name="is_readonly" eval="False"/>
+    <field name="ai_tool_name">chargex_create_product</field>
+    <field name="ai_tool_description">Create a company-specific single-variant product; policy-gated</field>
+    <field name="ai_tool_schema">{"type":"object","properties":{"name":{"type":"string","minLength":1,"maxLength":255},"category_id":{"type":"integer","minimum":1},"list_price":{"type":"number","minimum":0},"default_code":{"type":"string","maxLength":64}},"required":["name","category_id","list_price","default_code"]}</field>
+    <field name="group_ids" eval="[(4, ref('chargex_accounting_mcp.group_product_mcp_writer'))]"/>
+  </record>
+  <record id="action_update" model="ir.actions.server">
+    <field name="name">ChargeX: chargex_update_product</field>
+    <field name="model_id" ref="product.model_product_template"/>
+    <field name="state">code</field>
+    <field name="code">ai['result'] = model.chargex_mcp_update_product(template_id, expected_revision, changes)</field>
+    <field name="use_in_ai" eval="True"/>
+    <field name="use_in_mcp" eval="True"/>
+    <field name="is_readonly" eval="False"/>
+    <field name="ai_tool_name">chargex_update_product</field>
+    <field name="ai_tool_description">Update product name, price or SKU with optimistic concurrency; policy-gated</field>
+    <field name="ai_tool_schema">{"type":"object","properties":{"template_id":{"type":"integer","minimum":1},"expected_revision":{"type":"string","minLength":1},"changes":{"type":"object","properties":{"name":{"type":"string"},"list_price":{"type":"number","minimum":0},"default_code":{"type":"string"}}}},"required":["template_id","expected_revision","changes"]}</field>
+    <field name="group_ids" eval="[(4, ref('chargex_accounting_mcp.group_product_mcp_writer'))]"/>
+  </record>
+  <record id="action_active" model="ir.actions.server">
+    <field name="name">ChargeX: chargex_set_product_active</field>
+    <field name="model_id" ref="product.model_product_template"/>
+    <field name="state">code</field>
+    <field name="code">ai['result'] = model.chargex_mcp_set_product_active(template_id, expected_revision, active)</field>
+    <field name="use_in_ai" eval="True"/>
+    <field name="use_in_mcp" eval="True"/>
+    <field name="is_readonly" eval="False"/>
+    <field name="ai_tool_name">chargex_set_product_active</field>
+    <field name="ai_tool_description">Archive or restore a single-variant product; policy-gated</field>
+    <field name="ai_tool_schema">{"type":"object","properties":{"template_id":{"type":"integer","minimum":1},"expected_revision":{"type":"string","minLength":1},"active":{"type":"boolean"}},"required":["template_id","expected_revision","active"]}</field>
+    <field name="group_ids" eval="[(4, ref('chargex_accounting_mcp.group_product_mcp_writer'))]"/>
+  </record>
+</odoo>
