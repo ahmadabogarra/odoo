@@ -3,16 +3,12 @@
 import contextlib
 import datetime
 import logging
-import json
-from ast import literal_eval
 
-import requests
 
 from odoo import api, fields, release, SUPERUSER_ID
 from odoo.exceptions import UserError
 from odoo.models import AbstractModel
 from odoo.tools.translate import _
-from odoo.tools import config
 
 _logger = logging.getLogger(__name__)
 
@@ -70,22 +66,19 @@ class Publisher_WarrantyContract(AbstractModel):
 
     @api.model
     def _get_sys_logs(self):
-        """
-        Utility method to send a publisher warranty get logs messages.
-        """
-        msg = self._get_message()
-        arguments = {'arg0': json.dumps(msg), "action": "update"}
+        """Return an empty notification payload without publisher-warranty egress.
 
-        url = config.get("publisher_warranty_url")
-
-        r = requests.post(url, data=arguments, timeout=30)
-        r.raise_for_status()
-        return literal_eval(r.text)
+        Keep the published mail model API stable for callers and scheduled tasks.
+        ChargeX subscription management is intentionally out of scope here.
+        """
+        return {"messages": []}
 
     def update_notification(self, cron_mode=True):
         """
-        Send a message to Odoo's publisher warranty server to check the
-        validity of the contracts, get notifications, etc...
+        Preserve the publisher-notification compatibility API locally.
+
+        The offline ChargeX mail variant does not request a remote
+        publisher-warranty status or alter stored enterprise information.
 
         @param cron_mode: If true, catch all exceptions (appropriate for usage in a cron).
         @type cron_mode: boolean
